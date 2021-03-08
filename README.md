@@ -168,14 +168,13 @@ const Message = props => {
 
 ## ESLint
 
-Add `useAsync` and `useAsyncCallback` to `additionalHooks` in
-[eslint-plugin-react-hooks](https://www.npmjs.com/package/eslint-plugin-react-hooks) options to
-check for incorrect dependencies.
+Use `additionalHooks` option of
+[eslint-plugin-react-hooks](https://www.npmjs.com/package/eslint-plugin-react-hooks) to check for
+incorrect dependencies.
 
 ```json
 {
     "rules": {
-        // ...
         "react-hooks/exhaustive-deps": [
             "error",
             {
