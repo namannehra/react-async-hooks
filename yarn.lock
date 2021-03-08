@@ -5043,7 +5043,11 @@ fsevents@^2.1.2:
     tslib: ^2.1.0
     typescript: ~4.2.3
   peerDependencies:
+    "@types/react": ^16.9.0 || ^17.0.0
     react: ^16.9.0 || ^17.0.0
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
   languageName: unknown
   linkType: soft
 
