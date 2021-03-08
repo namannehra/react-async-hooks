@@ -1,0 +1,50 @@
+{
+    "name": "react-async-hooks",
+    "version": "1.0.0",
+    "description": "React hooks for async tasks",
+    "keywords": [
+        "async",
+        "asynchronous",
+        "hook",
+        "React",
+        "useAsync",
+        "useAsyncCallback"
+    ],
+    "license": "MIT",
+    "files": [
+        "/build/"
+    ],
+    "main": "build/cjs/index.js",
+    "module": "build/module/index.js",
+    "types": "build/types/index.d.ts",
+    "repository": "github:namannehra/react-async-hooks",
+    "scripts": {
+        "build": "yarn clean && yarn build-cjs && yarn build-module && yarn build-types",
+        "build-cjs": "tsc --composite false --module CommonJS --outDir build/cjs --project src",
+        "build-module": "tsc --composite false --module ES2015 --outDir build/module --project src",
+        "build-types": "tsc --composite false --declaration --declarationDir build/types --emitDeclarationOnly --project src",
+        "clean": "del build",
+        "format": "prettier --write .",
+        "test": "jest"
+    },
+    "dependencies": {
+        "@types/react": "~16.9.0",
+        "tslib": "^2.1.0"
+    },
+    "devDependencies": {
+        "@testing-library/react-hooks": "^5.1.0",
+        "@types/jest": "^26.0.20",
+        "@yarnpkg/pnpify": "^2.4.0",
+        "abort-controller": "^3.0.0",
+        "del-cli": "^3.0.1",
+        "jest": "^26.6.3",
+        "prettier": "^2.2.1",
+        "react": "~16.9.0",
+        "react-test-renderer": "^17.0.1",
+        "ts-jest": "^26.5.3",
+        "typescript": "~4.2.3"
+    },
+    "peerDependencies": {
+        "react": "^16.9.0 || ^17.0.0"
+    }
+}
