@@ -1,8 +1,8 @@
-## 1.0.2
+## 1.0.2 to 1.0.3
 
 2021-04-30
 
-No changes. This version was published to resolve an issue with NPM.
+No changes. These versions were published due to an issue with NPM.
 
 ## 1.0.1
 
