@@ -1,130 +1,164 @@
 import { renderHook } from '@testing-library/react-hooks';
 
-import { useAsync, UseAsyncState } from '../src';
+import { useAsync } from '../src';
 
 describe('Initial state', () => {
-    test('Unknown state', () => {
+    test('Pending', () => {
         const { result } = renderHook(() => useAsync(() => new Promise(() => {}), []));
-        expect(result.current.state).toBe(UseAsyncState.unknown);
+        expect(result.current.state).toBe('pending');
     });
 
-    test('Error state', async () => {
-        const error = {};
+    test('Rejected', async () => {
+        const reason = Symbol();
         const { result, waitForNextUpdate } = renderHook(() =>
-            useAsync(() => Promise.reject(error), []),
+            useAsync(async () => {
+                throw reason;
+            }, []),
         );
+        expect(result.current.state).toBe('pending');
         await waitForNextUpdate();
-        expect(result.current.state).toBe(UseAsyncState.error);
-        expect(result.current.error).toBe(error);
+        expect(result.current.state).toBe('rejected');
+        expect(result.current.reason).toBe(reason);
     });
 
-    test('Done state', async () => {
-        const value = {};
-        const { result, waitForNextUpdate } = renderHook(() =>
-            useAsync(() => Promise.resolve(value), []),
-        );
+    test('Fulfilled', async () => {
+        const value = Symbol();
+        const { result, waitForNextUpdate } = renderHook(() => useAsync(async () => value, []));
+        expect(result.current.state).toBe('pending');
         await waitForNextUpdate();
-        expect(result.current.state).toBe(UseAsyncState.done);
+        expect(result.current.state).toBe('fulfilled');
         expect(result.current.value).toBe(value);
     });
 });
 
 describe('State change', () => {
-    test('Unknown to error state', async () => {
-        let reject: (error?: unknown) => void;
-        const promise = new Promise((_resolve, reject2) => {
-            reject = reject2;
-        });
-        const { result, waitForNextUpdate } = renderHook(() => useAsync(() => promise, []));
-        expect(result.current.state).toBe(UseAsyncState.unknown);
-        const error = {};
-        reject!(error);
+    test('Pending to rejected', async () => {
+        const reason = Symbol();
+        let reject: (_: typeof reason) => void;
+        const { result, waitForNextUpdate } = renderHook(() =>
+            useAsync(
+                () =>
+                    new Promise((_, _reject) => {
+                        reject = _reject;
+                    }),
+                [],
+            ),
+        );
+        reject!(reason);
         await waitForNextUpdate();
-        expect(result.current.state).toBe(UseAsyncState.error);
-        expect(result.current.error).toBe(error);
+        expect(result.current.state).toBe('rejected');
+        expect(result.current.reason).toBe(reason);
     });
 
-    test('Unknown to done state', async () => {
-        let resolve: (value?: unknown) => void;
-        const promise = new Promise(resolve2 => {
-            resolve = resolve2;
-        });
-        const { result, waitForNextUpdate } = renderHook(() => useAsync(() => promise, []));
-        expect(result.current.state).toBe(UseAsyncState.unknown);
-        const value = {};
+    test('Pending to fulfilled', async () => {
+        const value = Symbol();
+        let resolve: (_: typeof value) => void;
+        const { result, waitForNextUpdate } = renderHook(() =>
+            useAsync(
+                () =>
+                    new Promise<typeof value>(_resolve => {
+                        resolve = _resolve;
+                    }),
+                [],
+            ),
+        );
         resolve!(value);
         await waitForNextUpdate();
-        expect(result.current.state).toBe(UseAsyncState.done);
+        expect(result.current.state).toBe('fulfilled');
         expect(result.current.value).toBe(value);
     });
 });
 
-describe('Deps changed', () => {
-    test('Resolve after deps changed', async () => {
+test('Return pending', async () => {
+    const { result } = renderHook(() => useAsync(async ({ pending }) => pending, []));
+    const { result: controlResult, waitForNextUpdate } = renderHook(() =>
+        useAsync(async () => {}, []),
+    );
+    await waitForNextUpdate();
+    expect(controlResult.current.state).toBe('fulfilled');
+    expect(result.current.state).toBe('pending');
+});
+
+describe('Dependencies change', () => {
+    test('Signal should be aboretd', async () => {
         let signal: AbortSignal;
-        let resolve: (value?: unknown) => void;
-        const { rerender, result, waitForNextUpdate } = renderHook(
-            (args: [(signal: AbortSignal) => Promise<unknown>, unknown[]]) => useAsync(...args),
-            {
-                initialProps: [
-                    (signal2: AbortSignal) => {
-                        signal = signal2;
-                        return new Promise(resolve2 => {
-                            resolve = resolve2;
-                        });
-                    },
-                    [1],
-                ],
-            },
-        );
-        rerender([() => Promise.reject(), [2]]);
+        const { rerender } = renderHook((args: Parameters<typeof useAsync>) => useAsync(...args), {
+            initialProps: [
+                async ({ signal: _signal }) => {
+                    signal = _signal;
+                },
+                [0],
+            ],
+        });
+        rerender([async () => {}, [1]]);
         expect(signal!.aborted).toBe(true);
-        resolve!();
-        await waitForNextUpdate();
-        expect(result.current.state).toBe(UseAsyncState.error);
     });
 
-    test('Reject after deps changed', async () => {
-        let signal: AbortSignal;
-        let reject: (error?: unknown) => void;
+    test('Pending after change', async () => {
         const { rerender, result, waitForNextUpdate } = renderHook(
-            (args: [(signal: AbortSignal) => Promise<unknown>, unknown[]]) => useAsync(...args),
+            (args: Parameters<typeof useAsync>) => useAsync(...args),
+            {
+                initialProps: [async () => {}, [0]],
+            },
+        );
+        await waitForNextUpdate();
+        rerender([() => new Promise(() => {}), [1]]);
+        expect(result.current.state).toBe('pending');
+    });
+
+    test('Reject after change', async () => {
+        let resolve: (value?: unknown) => void;
+        const { rerender, result, waitForNextUpdate } = renderHook(
+            (args: Parameters<typeof useAsync>) => useAsync(...args),
             {
                 initialProps: [
-                    (signal2: AbortSignal) => {
-                        signal = signal2;
-                        return new Promise((_resolve, reject2) => {
-                            reject = reject2;
-                        });
-                    },
-                    [1],
+                    () =>
+                        new Promise(_resolve => {
+                            resolve = _resolve;
+                        }),
+                    [0],
                 ],
             },
         );
-        rerender([() => Promise.resolve(), [2]]);
-        expect(signal!.aborted).toBe(true);
+        rerender([() => Promise.reject(), [1]]);
+        resolve!();
+        await waitForNextUpdate();
+        expect(result.current.state).toBe('rejected');
+    });
+
+    test('Resolve after change', async () => {
+        let reject: (reason?: unknown) => void;
+        const { rerender, result, waitForNextUpdate } = renderHook(
+            (args: Parameters<typeof useAsync>) => useAsync(...args),
+            {
+                initialProps: [
+                    () =>
+                        new Promise((_, _reject) => {
+                            reject = _reject;
+                        }),
+                    [0],
+                ],
+            },
+        );
+        rerender([() => Promise.resolve(), [1]]);
         reject!();
         await waitForNextUpdate();
-        expect(result.current.state).toBe(UseAsyncState.done);
+        expect(result.current.state).toBe('fulfilled');
     });
 });
 
-test('Deps unchanged', () => {
+test('Dependencies no change', () => {
     let signal: AbortSignal;
-    const { rerender } = renderHook(
-        (args: [(signal: AbortSignal) => Promise<unknown>, unknown[]]) => useAsync(...args),
-        {
-            initialProps: [
-                (signal2: AbortSignal) => {
-                    signal = signal2;
-                    return new Promise(() => {});
-                },
-                [1],
-            ],
-        },
-    );
-    const callback = jest.fn(() => new Promise(() => {}));
-    rerender([callback, [1]]);
+    const { rerender } = renderHook((args: Parameters<typeof useAsync>) => useAsync(...args), {
+        initialProps: [
+            async ({ signal: _signal }) => {
+                signal = _signal;
+            },
+            [0],
+        ],
+    });
+    const callback = jest.fn(async () => {});
+    rerender([callback, [0]]);
     expect(signal!.aborted).toBe(false);
-    expect(callback).toBeCalledTimes(0);
+    expect(callback).toHaveBeenCalledTimes(0);
 });

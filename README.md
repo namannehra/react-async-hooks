@@ -1,9 +1,13 @@
-React hooks for async tasks
+React hooks for promises. There are three hooks:
 
-There are two hooks, `useAsync` and `useAsyncCallback`. `useAsync` is like `useEffect`. It will run
-when dependencies change. `useAsyncCallback` is like `useCallback`. It returns a function. Both
-hooks support aborting using an
-[AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal).
+-   `useAsync`: This is like `useMemo` or `useEffect`.
+
+-   `useAsyncCallback`: This is like `useCallback`.
+
+-   `useAsyncVoidCallback`. This is also like `useCallback` but it doesn't return or throw.
+
+All hooks support aborting using an
+[`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal).
 
 ## `useAsync`
 
@@ -13,18 +17,26 @@ hooks support aborting using an
 import { useAsync } from 'react-async-hooks';
 
 const fetchMessage = async id => {
-    // Fetch data using id
+    const response = await fetch(`https://example.com/${id}`);
+    return await response.text();
 };
 
 const Message = props => {
-    const { state, error, value } = useAsync(() => fetchMessage(props.id), [props.id]);
-    return <div>{/* ... */}</div>;
+    const { state, reason, value } = useAsync(() => fetchMessage(props.id), [props.id]);
+
+    if (state === 'pending') {
+        return 'Loading';
+    }
+    if (reason) {
+        return 'Error';
+    }
+    return value;
 };
 ```
 
-`fetchMessage` will be called when `props.id` changes. `state` will be `'unknown'`, `'error'` or
-`'done'`. If `state` is not `'done'` then value will be `undefined`. If `state` is not `'error'`
-then `error` will be `undefined`.
+`fetchMessage` will be called when `props.id` changes. `state` will be `'pending'`, `'rejected'` or
+`'fulfilled'`. `value` will be defined if `state` is `'fulfilled'`. `reason` will be defined if
+`state` is `'rejected'`.
 
 ### Aborting
 
@@ -32,57 +44,148 @@ then `error` will be `undefined`.
 import { useAsync } from 'react-async-hooks';
 
 const fetchMessage = async (id, signal) => {
-    // Fetch data using id
-    // Cancel fetch using signal and throw error
+    const response = await fetch(`https://example.com/${id}`, { signal });
+    return await response.text();
 };
 
 const Message = props => {
-    const { state, error, value } = useAsync(signal => fetchMessage(props.id, signal), [props.id]);
-    return <div>{/* ... */}</div>;
+    const { state, reason, value } = useAsync(
+        ({ signal }) => fetchMessage(props.id, signal),
+        [props.id],
+    );
+
+    if (state === 'pending') {
+        return 'Loading';
+    }
+    if (reason) {
+        return 'Error';
+    }
+    return value;
 };
 ```
 
-Any error thrown by `fetchMessage` after aborting will be caught. `signal` is an `AbortSignal`.
+`signal` is an [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal). Old
+signals will be aborted when `props.id` changes or component unmounts. Values returned and errors
+thrown after aborting will be ignored.
+
+### Keeping `state` as `'pending'`
+
+```js
+import { useAsync } from 'react-async-hooks';
+
+const fetchMessage = async id => {
+    const response = await fetch(`https://example.com/${id}`);
+    return await response.text();
+};
+
+const Message = props => {
+    const { state, reason, value } = useAsync(
+        async ({ pending }) => {
+            if (props.id === undefined) {
+                return pending;
+            }
+            return await fetchMessage(props.id);
+        },
+        [props.id],
+    );
+
+    if (state === 'pending') {
+        return 'Loading';
+    }
+    if (reason) {
+        return 'Error';
+    }
+    return value;
+};
+```
+
+`state` will stay as `'pending'` till `props.id` is `undefined`.
 
 ## `useAsyncCallback`
 
 ```js
-import { useState } from 'react';
 import { useAsyncCallback } from 'react-async-hooks';
 
 const fetchMessage = async (id, signal) => {
-    // Fetch data using id
-    // Cancel fetch using signal and throw error
+    const response = await fetch(`https://example.com/${id}`, { signal });
+    return await response.text();
 };
 
 const Message = props => {
-    const [message, setMessage] = useState();
-
-    const updateMessage = useAsyncCallback(
-        async signal => {
+    const [callback, { state, reason, value }] = useAsyncCallback(
+        async ({ signal }) => {
             try {
-                const message = await fetchMessage(props.id, signal);
-                setMessage(message);
+                return await fetchMessage(props.id);
             } catch (error) {
                 if (!signal.aborted) {
                     throw error;
                 }
             }
         },
-        [props.id, setMessage],
+        [props.id],
     );
 
+    let message;
+    if (state === 'pending') {
+        message = 'Loading';
+    } else if (reason) {
+        message = 'Error';
+    } else {
+        message = value;
+    }
     return (
         <div>
-            <button onClick={updateMessage}>Update message</button>
-            <div>{/* ... */}</div>
+            <button onClick={callback}>Update message</button>
+            <div>{message}</div>
         </div>
     );
 };
 ```
 
-`fetchMessage` will be called when button is clicked. Any error thrown due to aborting must be
-handled.
+`fetchMessage` will be called when button is clicked. If an error is thrown inside
+`useAsyncCallback` then `callback` will reject with the same error. If a value is returned inside
+`useAsyncCallback` then `callback` will fulfill with the same value.
+
+## `useAsyncVoidCallback`
+
+```js
+import { useAsyncVoidCallback } from 'react-async-hooks';
+
+const fetchMessage = async (id, signal) => {
+    const response = await fetch(`https://example.com/${id}`, { signal });
+    return await response.text();
+};
+
+const Message = props => {
+    const [callback, { state, reason, value }] = useAsyncVoidCallback(
+        async ({ pending, signal }) => {
+            if (props.id === undefined) {
+                return pending;
+            }
+            return await fetchMessage(props.id);
+        },
+        [props.id],
+    );
+
+    let message;
+    if (state === 'pending') {
+        message = 'Loading';
+    } else if (reason) {
+        message = 'Error';
+    } else {
+        message = value;
+    }
+    return (
+        <div>
+            <button onClick={callback}>Update message</button>
+            <div>{message}</div>
+        </div>
+    );
+};
+```
+
+`fetchMessage` will be called when button is clicked. `callback` will never reject and will always
+be fulfilled with `void`.
 
 ## Race conditions
 
@@ -93,18 +196,24 @@ import { useState } from 'react';
 import { useAsync } from 'react-async-hooks';
 
 const fetchMessage = async id => {
-    // Fetch data using id
+    const response = await fetch(`https://example.com/${id}`);
+    return await response.text();
 };
 
 const Message = props => {
     const [message, setMessage] = useState();
-
     useAsync(async () => {
         const message = await fetchMessage(props.id);
         setMessage(message);
     }, [props.id]);
 
-    return <div>{/* ... */}</div>;
+    if (state === 'pending') {
+        return 'Loading';
+    }
+    if (reason) {
+        return 'Error';
+    }
+    return value;
 };
 ```
 
@@ -120,14 +229,14 @@ import { useState } from 'react';
 import { useAsync } from 'react-async-hooks';
 
 const fetchMessage = async id => {
-    // Fetch data using id
+    const response = await fetch(`https://example.com/${id}`);
+    return await response.text();
 };
 
 const Message = props => {
     const [message, setMessage] = useState();
-
     useAsync(
-        async signal => {
+        async ({ signal }) => {
             const message = await fetchMessage(props.id);
             if (!signal.aborted) {
                 setMessage(message);
@@ -136,35 +245,71 @@ const Message = props => {
         [props.id],
     );
 
-    return <div>{/* ... */}</div>;
+    if (state === 'pending') {
+        return 'Loading';
+    }
+    if (reason) {
+        return 'Error';
+    }
+    return value;
 };
 ```
 
 ## API
 
-### `useAsync<T>(callback, deps) => result`
+### Common
 
--   `callback`: `(signal: AbortSignal) => PromiseLike<T>`
+```ts
+type UseAsyncPendingResult = {
+    state: 'pending';
+};
 
--   `deps`: `Array`
+type UseAsyncRejectedResult = {
+    state: 'rejected';
+    reason: Reason;
+};
 
--   `result`: `Object`
+type UseAsyncFulfilledResult = {
+    state: 'fulfilled';
+    value: Value;
+};
 
--   `result.state`: `'unknown' | 'error' | 'done'`
+type UseAsyncResult = UseAsyncPendingResult | UseAsyncRejectedResult | UseAsyncFulfilledResult;
+```
 
--   `result.error`: `any | undefined`
+### `useAsync`
 
--   `result.value`: `T | undefined`
+```ts
+function useAsync(
+    fn: (options: { pending: Pending; signal: AbortSignal }) => Promise<Value | Pending>,
+    deps: any[],
+): UseAsyncResult;
+```
 
--   `PromiseLike` can be any [Promises/A+](https://promisesaplus.com) compliant promise.
+### `useAsyncCallback`
 
-### `useAsyncCallback<T, U>(callback, deps) => result`
+```ts
+type Callback = (...args: Args) => Promise<Value>;
 
--   `callback`: `(signal: AbortSignal, ...args: T) => U`
+function useAsyncCallback(
+    fn: (options: { signal: AbortSignal }, ...args: Args) => Promise<Value>,
+    deps: any[],
+): [Callback, UseAsyncResult];
+```
 
--   `deps`: `Array`
+### `useAsyncVoidCallback`
 
--   `result`: `(...args: T) => U`
+```ts
+type Callback = (...args: Args) => Promise<void>;
+
+function useAsyncVoidCallback(
+    fn: (
+        options: { pending: Pending; signal: AbortSignal },
+        ...args: Args
+    ) => Promise<Value | Pending>,
+    deps: any[],
+): [Callback, UseAsyncResult];
+```
 
 ## ESLint
 
@@ -178,7 +323,7 @@ incorrect dependencies.
         "react-hooks/exhaustive-deps": [
             "error",
             {
-                "additionalHooks": "(useAsync|useAsyncCallback)"
+                "additionalHooks": "(useAsync|useAsyncCallback|useAsyncVoidCallback)"
             }
         ]
     }

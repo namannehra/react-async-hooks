@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        // Type Checking
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "noUncheckedIndexedAccess": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "strict": true,
+
+        // Modules
+        "module": "ES2022",
+        "moduleResolution": "Bundler",
+
+        // Language and Environment
+        "lib": ["ES2022"],
+        "target": "ES2022",
+
+        // Interop Constraints
+        "allowSyntheticDefaultImports": true,
+
+        // Completeness
+        "skipLibCheck": true
+    }
+}

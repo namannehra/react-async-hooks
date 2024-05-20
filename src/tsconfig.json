@@ -1,8 +1,10 @@
 {
-    "extends": "../base-tsconfig",
+    "extends": "../tsconfig.base",
     "compilerOptions": {
-        // Project options
         "composite": true,
-        "importHelpers": true
+        "declaration": true,
+        "importHelpers": false,
+        "outDir": "../build",
+        "verbatimModuleSyntax": true
     }
 }

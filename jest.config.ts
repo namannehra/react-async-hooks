@@ -5,7 +5,10 @@ const config: JestConfigWithTsJest = {
     transform: {
         '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tests/tsconfig.json' }],
     },
-    testEnvironment: 'node',
+    moduleNameMapper: {
+        '^react$': `react-${process.env.REACT_VERSION}`,
+        '^react-test-renderer$': `react-test-renderer-${process.env.REACT_VERSION}`,
+    },
 };
 
 export default config;

@@ -1,3 +1,9 @@
+## 2.0.0
+
+2024-05-20
+
+This version is a complete rewrite.
+
 ## 1.0.4
 
 2023-06-20

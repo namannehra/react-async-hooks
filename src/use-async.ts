@@ -1,59 +1,66 @@
-import { DependencyList, useEffect, useState } from 'react';
+import { type DependencyList, useEffect, useState } from 'react';
 
-export enum UseAsyncState {
-    unknown = 'unknown',
-    error = 'error',
-    done = 'done',
+export type UseAsyncState = 'pending' | 'rejected' | 'fulfilled';
+
+export interface UseAsyncPendingResult {
+    state: 'pending';
+    reason?: never;
+    value?: never;
 }
 
-export interface UseAsyncUnknownResult {
-    state: UseAsyncState.unknown;
-    error?: undefined;
-    value?: undefined;
+export interface UseAsyncRejectedResult<TReason = unknown> {
+    state: 'rejected';
+    reason: TReason;
+    value?: never;
 }
 
-export interface UseAsyncErrorResult {
-    state: UseAsyncState.error;
-    error: unknown;
-    value?: undefined;
+export interface UseAsyncFulfilledResult<TValue> {
+    state: 'fulfilled';
+    reason?: never;
+    value: TValue;
 }
 
-export interface UseAsyncDoneResult<T> {
-    state: UseAsyncState.done;
-    error?: undefined;
-    value: T;
-}
+export type UseAsyncResult<TValue, TReason = unknown> =
+    | UseAsyncPendingResult
+    | UseAsyncRejectedResult<TReason>
+    | UseAsyncFulfilledResult<TValue>;
 
-export type UseAsyncResult<T> = UseAsyncUnknownResult | UseAsyncErrorResult | UseAsyncDoneResult<T>;
+export const pending = Symbol('pending');
 
-export const useAsync = <T>(
-    callback: (signal: AbortSignal) => PromiseLike<T>,
+export const setPendingResult = (result: UseAsyncResult<unknown>): UseAsyncPendingResult => {
+    if (result.state === 'pending') {
+        return result;
+    }
+    return { state: 'pending' };
+};
+
+export const useAsync = <TValue, TReason = unknown>(
+    fn: (options: {
+        pending: typeof pending;
+        signal: AbortSignal;
+    }) => PromiseLike<TValue | typeof pending>,
     deps: DependencyList,
-): UseAsyncResult<T> => {
-    const [result, setResult] = useState<UseAsyncResult<T>>({
-        state: UseAsyncState.unknown,
-    });
+): UseAsyncResult<TValue, TReason> => {
+    const [result, setResult] = useState<UseAsyncResult<TValue, TReason>>({ state: 'pending' });
 
     useEffect(() => {
-        setResult({
-            state: UseAsyncState.unknown,
-        });
+        setResult(setPendingResult);
         const controller = new AbortController();
         const { signal } = controller;
-        callback(signal).then(
+        fn({ pending, signal }).then(
             value => {
-                if (!signal.aborted) {
+                if (!signal.aborted && value !== pending) {
                     setResult({
-                        state: UseAsyncState.done,
+                        state: 'fulfilled',
                         value,
                     });
                 }
             },
-            error => {
+            reason => {
                 if (!signal.aborted) {
                     setResult({
-                        state: UseAsyncState.error,
-                        error,
+                        state: 'rejected',
+                        reason,
                     });
                 }
             },
@@ -61,7 +68,7 @@ export const useAsync = <T>(
         return () => {
             controller.abort();
         };
-    }, [...deps, setResult]);
+    }, deps);
 
     return result;
 };

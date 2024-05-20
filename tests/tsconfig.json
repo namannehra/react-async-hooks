@@ -1,5 +1,5 @@
 {
-    "extends": "../base-tsconfig",
+    "extends": "../tsconfig.base",
     "references": [
         {
             "path": "../src"

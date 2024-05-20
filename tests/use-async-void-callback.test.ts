@@ -1,16 +1,18 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 
-import { useAsyncCallback } from '../src';
+import { useAsyncVoidCallback } from '../src';
 
 test('Initial state', () => {
-    const { result } = renderHook(() => useAsyncCallback(async () => {}, []));
+    const { result } = renderHook(() => useAsyncVoidCallback(async () => {}, []));
     expect(result.current[1].state).toBe('pending');
 });
 
 describe('Callback called', () => {
     test('Pending', async () => {
-        const { result } = renderHook(() => useAsyncCallback(() => new Promise(() => {}), []));
-        const { result: controlResult } = renderHook(() => useAsyncCallback(async () => {}, []));
+        const { result } = renderHook(() => useAsyncVoidCallback(() => new Promise(() => {}), []));
+        const { result: controlResult } = renderHook(() =>
+            useAsyncVoidCallback(async () => {}, []),
+        );
         await act(async () => {
             result.current[0]();
             await controlResult.current[0]();
@@ -19,10 +21,20 @@ describe('Callback called', () => {
         expect(result.current[1].state).toBe('pending');
     });
 
+    test('Return pending', async () => {
+        const { result } = renderHook(() =>
+            useAsyncVoidCallback(async ({ pending }) => pending, []),
+        );
+        await act(async () => {
+            expect(await result.current[0]()).toBe(undefined);
+        });
+        expect(result.current[1].state).toBe('pending');
+    });
+
     test('Rejected', async () => {
         const reason = Symbol();
         const { result } = renderHook(() =>
-            useAsyncCallback(async () => {
+            useAsyncVoidCallback(async () => {
                 throw reason;
             }, []),
         );
@@ -33,7 +45,7 @@ describe('Callback called', () => {
             } catch (_error) {
                 error = _error;
             }
-            expect(error).toBe(reason);
+            expect(error).toBe(undefined);
         });
         expect(result.current[1].state).toBe('rejected');
         expect(result.current[1].reason).toBe(reason);
@@ -41,9 +53,9 @@ describe('Callback called', () => {
 
     test('Fulfilled', async () => {
         const value = Symbol();
-        const { result } = renderHook(() => useAsyncCallback(async () => value, []));
+        const { result } = renderHook(() => useAsyncVoidCallback(async () => value, []));
         await act(async () => {
-            expect(await result.current[0]()).toBe(value);
+            expect(await result.current[0]()).toBe(undefined);
         });
         expect(result.current[1].state).toBe('fulfilled');
         expect(result.current[1].value).toBe(value);
@@ -54,7 +66,7 @@ test('Dependencies change', async () => {
     let signal: AbortSignal;
     let resolve: () => void;
     const { rerender, result } = renderHook(
-        (args: Parameters<typeof useAsyncCallback>) => useAsyncCallback(...args),
+        (args: Parameters<typeof useAsyncVoidCallback>) => useAsyncVoidCallback(...args),
         {
             initialProps: [
                 ({ signal: _signal }) => {
@@ -84,7 +96,7 @@ test('Dependencies no change', async () => {
     let signal: AbortSignal;
     const value = Symbol();
     const { rerender, result } = renderHook(
-        (args: Parameters<typeof useAsyncCallback>) => useAsyncCallback(...args),
+        (args: Parameters<typeof useAsyncVoidCallback>) => useAsyncVoidCallback(...args),
         {
             initialProps: [
                 async ({ signal: _signal }) => {
