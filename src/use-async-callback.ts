@@ -2,11 +2,23 @@ import { type DependencyList, useEffect, useMemo, useState } from 'react';
 
 import { type UseAsyncResult, setPendingResult } from './use-async';
 
-export const useAsyncCallback = <TArgs extends unknown[], TValue, TReason = unknown>(
-    fn: (options: { signal: AbortSignal }, ...args: TArgs) => PromiseLike<TValue>,
+export const useAsyncCallback = <
+    TArgs extends unknown[],
+    TValue,
+    TReason = unknown,
+>(
+    fn: (
+        options: { signal: AbortSignal },
+        ...args: TArgs
+    ) => PromiseLike<TValue>,
     deps: DependencyList,
-): [(...args: TArgs) => PromiseLike<TValue>, UseAsyncResult<TValue, TReason>] => {
-    const [result, setResult] = useState<UseAsyncResult<TValue, TReason>>({ state: 'pending' });
+): [
+    (...args: TArgs) => PromiseLike<TValue>,
+    UseAsyncResult<TValue, TReason>,
+] => {
+    const [result, setResult] = useState<UseAsyncResult<TValue, TReason>>({
+        state: 'pending',
+    });
 
     const [controller, callback] = useMemo(
         (): [AbortController, (...args: TArgs) => PromiseLike<TValue>] => {

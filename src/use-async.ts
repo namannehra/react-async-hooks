@@ -27,7 +27,9 @@ export type UseAsyncResult<TValue, TReason = unknown> =
 
 export const pending = Symbol('pending');
 
-export const setPendingResult = (result: UseAsyncResult<unknown>): UseAsyncPendingResult => {
+export const setPendingResult = (
+    result: UseAsyncResult<unknown>,
+): UseAsyncPendingResult => {
     if (result.state === 'pending') {
         return result;
     }
@@ -41,7 +43,9 @@ export const useAsync = <TValue, TReason = unknown>(
     }) => PromiseLike<TValue | typeof pending>,
     deps: DependencyList,
 ): UseAsyncResult<TValue, TReason> => {
-    const [result, setResult] = useState<UseAsyncResult<TValue, TReason>>({ state: 'pending' });
+    const [result, setResult] = useState<UseAsyncResult<TValue, TReason>>({
+        state: 'pending',
+    });
 
     useEffect(() => {
         setResult(setPendingResult);

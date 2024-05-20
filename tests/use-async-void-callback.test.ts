@@ -3,13 +3,17 @@ import { act, renderHook } from '@testing-library/react-hooks';
 import { useAsyncVoidCallback } from '../src';
 
 test('Initial state', () => {
-    const { result } = renderHook(() => useAsyncVoidCallback(async () => {}, []));
+    const { result } = renderHook(() =>
+        useAsyncVoidCallback(async () => {}, []),
+    );
     expect(result.current[1].state).toBe('pending');
 });
 
 describe('Callback called', () => {
     test('Pending', async () => {
-        const { result } = renderHook(() => useAsyncVoidCallback(() => new Promise(() => {}), []));
+        const { result } = renderHook(() =>
+            useAsyncVoidCallback(() => new Promise(() => {}), []),
+        );
         const { result: controlResult } = renderHook(() =>
             useAsyncVoidCallback(async () => {}, []),
         );
@@ -53,7 +57,9 @@ describe('Callback called', () => {
 
     test('Fulfilled', async () => {
         const value = Symbol();
-        const { result } = renderHook(() => useAsyncVoidCallback(async () => value, []));
+        const { result } = renderHook(() =>
+            useAsyncVoidCallback(async () => value, []),
+        );
         await act(async () => {
             expect(await result.current[0]()).toBe(undefined);
         });
@@ -66,7 +72,8 @@ test('Dependencies change', async () => {
     let signal: AbortSignal;
     let resolve: () => void;
     const { rerender, result } = renderHook(
-        (args: Parameters<typeof useAsyncVoidCallback>) => useAsyncVoidCallback(...args),
+        (args: Parameters<typeof useAsyncVoidCallback>) =>
+            useAsyncVoidCallback(...args),
         {
             initialProps: [
                 ({ signal: _signal }) => {
@@ -96,7 +103,8 @@ test('Dependencies no change', async () => {
     let signal: AbortSignal;
     const value = Symbol();
     const { rerender, result } = renderHook(
-        (args: Parameters<typeof useAsyncVoidCallback>) => useAsyncVoidCallback(...args),
+        (args: Parameters<typeof useAsyncVoidCallback>) =>
+            useAsyncVoidCallback(...args),
         {
             initialProps: [
                 async ({ signal: _signal }) => {

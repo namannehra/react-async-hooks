@@ -9,8 +9,12 @@ test('Initial state', () => {
 
 describe('Callback called', () => {
     test('Pending', async () => {
-        const { result } = renderHook(() => useAsyncCallback(() => new Promise(() => {}), []));
-        const { result: controlResult } = renderHook(() => useAsyncCallback(async () => {}, []));
+        const { result } = renderHook(() =>
+            useAsyncCallback(() => new Promise(() => {}), []),
+        );
+        const { result: controlResult } = renderHook(() =>
+            useAsyncCallback(async () => {}, []),
+        );
         await act(async () => {
             result.current[0]();
             await controlResult.current[0]();
@@ -41,7 +45,9 @@ describe('Callback called', () => {
 
     test('Fulfilled', async () => {
         const value = Symbol();
-        const { result } = renderHook(() => useAsyncCallback(async () => value, []));
+        const { result } = renderHook(() =>
+            useAsyncCallback(async () => value, []),
+        );
         await act(async () => {
             expect(await result.current[0]()).toBe(value);
         });
@@ -54,7 +60,8 @@ test('Dependencies change', async () => {
     let signal: AbortSignal;
     let resolve: () => void;
     const { rerender, result } = renderHook(
-        (args: Parameters<typeof useAsyncCallback>) => useAsyncCallback(...args),
+        (args: Parameters<typeof useAsyncCallback>) =>
+            useAsyncCallback(...args),
         {
             initialProps: [
                 ({ signal: _signal }) => {
@@ -84,7 +91,8 @@ test('Dependencies no change', async () => {
     let signal: AbortSignal;
     const value = Symbol();
     const { rerender, result } = renderHook(
-        (args: Parameters<typeof useAsyncCallback>) => useAsyncCallback(...args),
+        (args: Parameters<typeof useAsyncCallback>) =>
+            useAsyncCallback(...args),
         {
             initialProps: [
                 async ({ signal: _signal }) => {

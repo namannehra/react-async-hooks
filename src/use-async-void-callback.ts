@@ -2,14 +2,20 @@ import { type DependencyList, useEffect, useMemo, useState } from 'react';
 
 import { type UseAsyncResult, pending, setPendingResult } from './use-async';
 
-export const useAsyncVoidCallback = <TArgs extends unknown[], TValue, TReason = unknown>(
+export const useAsyncVoidCallback = <
+    TArgs extends unknown[],
+    TValue,
+    TReason = unknown,
+>(
     fn: (
         options: { pending: typeof pending; signal: AbortSignal },
         ...args: TArgs
     ) => PromiseLike<TValue | typeof pending>,
     deps: DependencyList,
 ): [(...args: TArgs) => PromiseLike<void>, UseAsyncResult<TValue, TReason>] => {
-    const [result, setResult] = useState<UseAsyncResult<TValue, TReason>>({ state: 'pending' });
+    const [result, setResult] = useState<UseAsyncResult<TValue, TReason>>({
+        state: 'pending',
+    });
 
     const [controller, callback] = useMemo(
         (): [AbortController, (...args: TArgs) => PromiseLike<void>] => {

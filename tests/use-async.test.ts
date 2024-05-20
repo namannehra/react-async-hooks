@@ -4,7 +4,9 @@ import { useAsync } from '../src';
 
 describe('Initial state', () => {
     test('Pending', () => {
-        const { result } = renderHook(() => useAsync(() => new Promise(() => {}), []));
+        const { result } = renderHook(() =>
+            useAsync(() => new Promise(() => {}), []),
+        );
         expect(result.current.state).toBe('pending');
     });
 
@@ -23,7 +25,9 @@ describe('Initial state', () => {
 
     test('Fulfilled', async () => {
         const value = Symbol();
-        const { result, waitForNextUpdate } = renderHook(() => useAsync(async () => value, []));
+        const { result, waitForNextUpdate } = renderHook(() =>
+            useAsync(async () => value, []),
+        );
         expect(result.current.state).toBe('pending');
         await waitForNextUpdate();
         expect(result.current.state).toBe('fulfilled');
@@ -70,7 +74,9 @@ describe('State change', () => {
 });
 
 test('Return pending', async () => {
-    const { result } = renderHook(() => useAsync(async ({ pending }) => pending, []));
+    const { result } = renderHook(() =>
+        useAsync(async ({ pending }) => pending, []),
+    );
     const { result: controlResult, waitForNextUpdate } = renderHook(() =>
         useAsync(async () => {}, []),
     );
@@ -82,14 +88,17 @@ test('Return pending', async () => {
 describe('Dependencies change', () => {
     test('Signal should be aboretd', async () => {
         let signal: AbortSignal;
-        const { rerender } = renderHook((args: Parameters<typeof useAsync>) => useAsync(...args), {
-            initialProps: [
-                async ({ signal: _signal }) => {
-                    signal = _signal;
-                },
-                [0],
-            ],
-        });
+        const { rerender } = renderHook(
+            (args: Parameters<typeof useAsync>) => useAsync(...args),
+            {
+                initialProps: [
+                    async ({ signal: _signal }) => {
+                        signal = _signal;
+                    },
+                    [0],
+                ],
+            },
+        );
         rerender([async () => {}, [1]]);
         expect(signal!.aborted).toBe(true);
     });
@@ -149,14 +158,17 @@ describe('Dependencies change', () => {
 
 test('Dependencies no change', () => {
     let signal: AbortSignal;
-    const { rerender } = renderHook((args: Parameters<typeof useAsync>) => useAsync(...args), {
-        initialProps: [
-            async ({ signal: _signal }) => {
-                signal = _signal;
-            },
-            [0],
-        ],
-    });
+    const { rerender } = renderHook(
+        (args: Parameters<typeof useAsync>) => useAsync(...args),
+        {
+            initialProps: [
+                async ({ signal: _signal }) => {
+                    signal = _signal;
+                },
+                [0],
+            ],
+        },
+    );
     const callback = jest.fn(async () => {});
     rerender([callback, [0]]);
     expect(signal!.aborted).toBe(false);

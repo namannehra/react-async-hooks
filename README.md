@@ -4,7 +4,8 @@ React hooks for promises. There are three hooks:
 
 -   `useAsyncCallback`: This is like `useCallback`.
 
--   `useAsyncVoidCallback`. This is also like `useCallback` but it doesn't return or throw.
+-   `useAsyncVoidCallback`. This is also like `useCallback` but it doesn't
+    return or throw.
 
 All hooks support aborting using an
 [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal).
@@ -22,7 +23,10 @@ const fetchMessage = async id => {
 };
 
 const Message = props => {
-    const { state, reason, value } = useAsync(() => fetchMessage(props.id), [props.id]);
+    const { state, reason, value } = useAsync(
+        () => fetchMessage(props.id),
+        [props.id],
+    );
 
     if (state === 'pending') {
         return 'Loading';
@@ -34,9 +38,9 @@ const Message = props => {
 };
 ```
 
-`fetchMessage` will be called when `props.id` changes. `state` will be `'pending'`, `'rejected'` or
-`'fulfilled'`. `value` will be defined if `state` is `'fulfilled'`. `reason` will be defined if
-`state` is `'rejected'`.
+`fetchMessage` will be called when `props.id` changes. `state` will be
+`'pending'`, `'rejected'` or `'fulfilled'`. `value` will be defined if `state`
+is `'fulfilled'`. `reason` will be defined if `state` is `'rejected'`.
 
 ### Aborting
 
@@ -64,9 +68,10 @@ const Message = props => {
 };
 ```
 
-`signal` is an [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal). Old
-signals will be aborted when `props.id` changes or component unmounts. Values returned and errors
-thrown after aborting will be ignored.
+`signal` is an
+[`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal).
+Old signals will be aborted when `props.id` changes or component unmounts.
+Values returned and errors thrown after aborting will be ignored.
 
 ### Keeping `state` as `'pending'`
 
@@ -142,9 +147,10 @@ const Message = props => {
 };
 ```
 
-`fetchMessage` will be called when button is clicked. If an error is thrown inside
-`useAsyncCallback` then `callback` will reject with the same error. If a value is returned inside
-`useAsyncCallback` then `callback` will fulfill with the same value.
+`fetchMessage` will be called when button is clicked. If an error is thrown
+inside `useAsyncCallback` then `callback` will reject with the same error. If a
+value is returned inside `useAsyncCallback` then `callback` will fulfill with
+the same value.
 
 ## `useAsyncVoidCallback`
 
@@ -184,8 +190,8 @@ const Message = props => {
 };
 ```
 
-`fetchMessage` will be called when button is clicked. `callback` will never reject and will always
-be fulfilled with `void`.
+`fetchMessage` will be called when button is clicked. `callback` will never
+reject and will always be fulfilled with `void`.
 
 ## Race conditions
 
@@ -217,10 +223,11 @@ const Message = props => {
 };
 ```
 
-Here it's possible that an old `fetchMessage` call resolves after a new `fetchMessage` call. This is
-handled automatically in the value returned by `useAsync` but if state is changed inside the
-callback passed to `useAsync` or `useAsyncCallback` then `signal.aborted` should be checked before
-changing state.
+Here it's possible that an old `fetchMessage` call resolves after a new
+`fetchMessage` call. This is handled automatically in the value returned by
+`useAsync` but if state is changed inside the callback passed to `useAsync` or
+`useAsyncCallback` then `signal.aborted` should be checked before changing
+state.
 
 Correct:
 
@@ -274,14 +281,20 @@ type UseAsyncFulfilledResult = {
     value: Value;
 };
 
-type UseAsyncResult = UseAsyncPendingResult | UseAsyncRejectedResult | UseAsyncFulfilledResult;
+type UseAsyncResult =
+    | UseAsyncPendingResult
+    | UseAsyncRejectedResult
+    | UseAsyncFulfilledResult;
 ```
 
 ### `useAsync`
 
 ```ts
 function useAsync(
-    fn: (options: { pending: Pending; signal: AbortSignal }) => Promise<Value | Pending>,
+    fn: (options: {
+        pending: Pending;
+        signal: AbortSignal;
+    }) => Promise<Value | Pending>,
     deps: any[],
 ): UseAsyncResult;
 ```
@@ -314,8 +327,8 @@ function useAsyncVoidCallback(
 ## ESLint
 
 Use `additionalHooks` option of
-[eslint-plugin-react-hooks](https://www.npmjs.com/package/eslint-plugin-react-hooks) to check for
-incorrect dependencies.
+[eslint-plugin-react-hooks](https://www.npmjs.com/package/eslint-plugin-react-hooks)
+to check for incorrect dependencies.
 
 ```json
 {

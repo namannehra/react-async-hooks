@@ -24,4 +24,5 @@ No changes. These versions were published due to an issue with NPM.
 
 ### Changed
 
--   `@types/react` moved from `dependencies` to `devDependencies` and `peerDependencies`
+-   `@types/react` moved from `dependencies` to `devDependencies` and
+    `peerDependencies`
